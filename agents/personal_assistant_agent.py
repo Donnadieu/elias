@@ -27,6 +27,10 @@ try:
 except ImportError:
     print("Warning: python-dotenv not installed. Using environment variables directly.")
 
+# Load system message from file
+with open("config/prompts/super_prompt.txt", "r") as f:
+    system_message = f.read()
+
 
 class PersonalAssistantAgent:
     """
@@ -39,7 +43,7 @@ class PersonalAssistantAgent:
         name: str = "personal_assistant",
         model_name: Optional[str] = None,
         api_key: Optional[str] = None,
-        system_message: Optional[str] = None,
+        system_message: Optional[str] = system_message,
         memory_collection: str = "personal_assistant_memories",
         qdrant_api_key: Optional[str] = None,
         qdrant_host_url: Optional[str] = None,
