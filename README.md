@@ -45,7 +45,7 @@ python run.py
 ### Basic Commands
 
 - Ask any question and the assistant will use its knowledge base to respond
-- Add information to the knowledge base: `add to knowledge: [information]`
+- Add information to the knowledge base: `remember that [information]`
 - Type `exit` or `quit` to end the session
 
 ### Example Interactions
@@ -54,7 +54,7 @@ python run.py
 You: What is the capital of France?
 Assistant: The capital of France is Paris.
 
-You: add to knowledge: The Eiffel Tower is located in Paris.
+You: remember that The Eiffel Tower is located in Paris.
 Assistant: Document added to knowledge base with ID: abc123...
 
 You: Where is the Eiffel Tower located?
@@ -76,7 +76,7 @@ The assistant uses a Retrieval-Augmented Generation (RAG) system that:
 
 You can add documents to the knowledge base in several ways:
 
-1. **Interactive**: Use the `add to knowledge:` command
+1. **Interactive**: Use the `remember that [information]` command
 2. **Programmatic**: Use the `add_document()` method in Python
 3. **Bulk Loading**: Create a script to load multiple documents at once
 
