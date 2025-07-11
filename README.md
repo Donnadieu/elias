@@ -1,6 +1,6 @@
-# AI Assistant with RAG Capabilities
+# E.L.I.A.S: Enhanced Learning & Intelligent Autonomous System
 
-An advanced AI assistant built with AutoGen's AgentChat framework that combines code execution with Retrieval-Augmented Generation (RAG) for context-aware responses.
+E.L.I.A.S is an advanced AI assistant built with AutoGen's AgentChat framework that combines code execution with Retrieval-Augmented Generation (RAG) for context-aware responses.
 
 ## Project Structure
 
