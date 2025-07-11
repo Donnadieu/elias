@@ -87,7 +87,7 @@ async def main():
         return
     
     # Default assistant name (can be overridden by knowledge base)
-    default_assistant_name = "Assistant"
+    default_assistant_name = "Elias"
     
     try:
         print("Initializing AI Assistant with RAG capabilities...")
