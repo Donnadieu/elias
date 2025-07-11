@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 
 # Import the executor tool
 from tools.executor_tool import run_python_code
+# Import LLM configuration
+from llm.deepseek_client import get_llm_config
 
 # Try to load environment variables if dotenv is available
 try:
@@ -26,26 +28,58 @@ class ExecutionAgent:
     def __init__(
         self,
         name: str = "execution_agent",
-        model_name: str = "gpt-4o",
+        model_name: Optional[str] = None,
         api_key: Optional[str] = None,
-        system_message: str = "You are a helpful AI assistant that can generate and execute Python code based on user instructions."
+        system_message: str = "You are a helpful AI assistant that can generate and execute Python code based on user instructions.",
+        use_deepseek: bool = True
     ):
         """
         Initialize the ExecutionAgent.
         
         Args:
             name (str): Name of the agent
-            model_name (str): Name of the model to use
-            api_key (Optional[str]): OpenAI API key (if None, will use environment variable)
+            model_name (Optional[str]): Name of the model to use (overrides config)
+            api_key (Optional[str]): API key (if None, will use environment variable)
             system_message (str): System message for the agent
+            use_deepseek (bool): Whether to use DeepSeek as the default provider
         """
-        # Create model client
+        # Get LLM configuration (DeepSeek by default, falls back to OpenAI)
+        llm_config = get_llm_config(use_deepseek=use_deepseek)
+        
+        # Create model client with custom configuration if provided
         model_client_kwargs = {}
-        if api_key:
-            model_client_kwargs["api_key"] = api_key
+        
+        # If we have a config list, extract all necessary parameters
+        if "config_list" in llm_config and llm_config["config_list"]:
+            config = llm_config["config_list"][0]
             
+            # Extract model name
+            if model_name:
+                model_client_kwargs["model"] = model_name
+            else:
+                model_client_kwargs["model"] = config.get("model")
+                
+            # Extract API key
+            if api_key:
+                model_client_kwargs["api_key"] = api_key
+            else:
+                model_client_kwargs["api_key"] = config.get("api_key")
+                
+            # Extract base URL for DeepSeek
+            if "base_url" in config:
+                model_client_kwargs["base_url"] = config.get("base_url")
+                
+            # Extract model_info for non-OpenAI models
+            if "model_info" in config:
+                model_client_kwargs["model_info"] = config.get("model_info")
+        else:
+            # Fallback if no config is available
+            if model_name:
+                model_client_kwargs["model"] = model_name
+            if api_key:
+                model_client_kwargs["api_key"] = api_key
+                
         self.model_client = OpenAIChatCompletionClient(
-            model=model_name,
             **model_client_kwargs
         )
         

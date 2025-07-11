@@ -17,6 +17,9 @@ from tools.executor_tool import run_python_code
 # Import the RAG system
 from .rag_system import RAGSystem, Document
 
+# Import LLM configuration
+from llm.deepseek_client import get_llm_config
+
 # Try to load environment variables if dotenv is available
 try:
     from dotenv import load_dotenv
@@ -34,26 +37,28 @@ class PersonalAssistantAgent:
     def __init__(
         self,
         name: str = "personal_assistant",
-        model_name: str = "gpt-4o",
+        model_name: Optional[str] = None,
         api_key: Optional[str] = None,
         system_message: Optional[str] = None,
         memory_collection: str = "personal_assistant_memories",
         qdrant_api_key: Optional[str] = None,
         qdrant_host_url: Optional[str] = None,
-        rag_collection: str = "assistant_knowledge"
+        rag_collection: str = "assistant_knowledge",
+        use_deepseek: bool = True
     ):
         """
         Initialize the PersonalAssistantAgent with RAG capabilities.
         
         Args:
             name (str): Name of the agent
-            model_name (str): Name of the model to use for generation
-            api_key (Optional[str]): OpenAI API key (if None, will use environment variable)
+            model_name (Optional[str]): Name of the model to use for generation (overrides config)
+            api_key (Optional[str]): API key (if None, will use environment variable)
             system_message (Optional[str]): System message for the agent
             memory_collection (str): Name of the memory collection to use
             qdrant_api_key (Optional[str]): Qdrant API key
             qdrant_host_url (Optional[str]): Qdrant host URL
             rag_collection (str): Name of the RAG collection to use
+            use_deepseek (bool): Whether to use DeepSeek as the default provider
         """
         # Set the assistant's name and model
         self.name = name
@@ -73,13 +78,43 @@ class PersonalAssistantAgent:
             - Admit when you don't know something
             """
         
-        # Initialize the model client
+        # Get LLM configuration (DeepSeek by default, falls back to OpenAI)
+        llm_config = get_llm_config(use_deepseek=use_deepseek)
+        
+        # Create model client with custom configuration if provided
         model_client_kwargs = {}
-        if api_key:
-            model_client_kwargs["api_key"] = api_key
+        
+        # If we have a config list, extract all necessary parameters
+        if "config_list" in llm_config and llm_config["config_list"]:
+            config = llm_config["config_list"][0]
             
+            # Extract model name
+            if model_name:
+                model_client_kwargs["model"] = model_name
+            else:
+                model_client_kwargs["model"] = config.get("model")
+                
+            # Extract API key
+            if api_key:
+                model_client_kwargs["api_key"] = api_key
+            else:
+                model_client_kwargs["api_key"] = config.get("api_key")
+                
+            # Extract base URL for DeepSeek
+            if "base_url" in config:
+                model_client_kwargs["base_url"] = config.get("base_url")
+                
+            # Extract model_info for non-OpenAI models
+            if "model_info" in config:
+                model_client_kwargs["model_info"] = config.get("model_info")
+        else:
+            # Fallback if no config is available
+            if model_name:
+                model_client_kwargs["model"] = model_name
+            if api_key:
+                model_client_kwargs["api_key"] = api_key
+                
         self.model_client = OpenAIChatCompletionClient(
-            model=model_name,
             **model_client_kwargs
         )
         

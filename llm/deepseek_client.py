@@ -25,12 +25,34 @@ def get_deepseek_config() -> Dict[str, Any]:
             "Please set DEEPSEEK_BASE_URL and DEEPSEEK_API_KEY environment variables."
         )
     
+    # Ensure the base URL has the correct format
+    if not base_url.endswith("/v1"):
+        base_url = f"{base_url}/v1"
+    
+    # Model info is required for non-OpenAI models
+    model_info = {
+        "name": model,
+        "family": "deepseek",  # Required field in v0.4.7+
+        "max_tokens": 4096,  # Default max tokens for DeepSeek models
+        "has_chat_completions": True,
+        "has_completions": True,
+        "has_embeddings": False,
+        "has_chat_completion_stream": True,
+        "has_completion_stream": True,
+        "supports_functions": True,
+        "supports_tools": True,
+        "vision": False,  # Required field in v0.4.7+
+        "function_calling": "auto",  # Required field in v0.4.7+
+        "json_output": True  # Required field in v0.4.7+
+    }
+    
     return {
         "config_list": [{
             "model": model,
             "base_url": base_url,
             "api_key": api_key,
-            "api_type": "openai"  # Assuming DeepSeek uses OpenAI-compatible API
+            "api_type": "openai",  # DeepSeek uses OpenAI-compatible API
+            "model_info": model_info  # Required for non-OpenAI models
         }],
         "timeout": 120,
         "cache_seed": 42  # For reproducibility

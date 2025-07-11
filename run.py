@@ -6,7 +6,9 @@ This script provides a simple CLI interface for interacting with the PersonalAss
 import asyncio
 import os
 import sys
+import logging
 from agents.personal_assistant_agent import PersonalAssistantAgent
+from llm.deepseek_client import get_llm_config
 
 # Try to load environment variables if dotenv is available
 try:
@@ -40,8 +42,20 @@ def print_welcome_message(assistant_name: str = "Assistant"):
 
 async def main():
     """Main function to run the personal assistant with RAG capabilities."""
+    # Set up logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    logger = logging.getLogger('personal_assistant')
+    
     # Check if required environment variables are set
-    required_vars = ["OPENAI_API_KEY", "QDRANT_API_KEY", "QDRANT_HOST_URL"]
+    required_vars = ["QDRANT_API_KEY", "QDRANT_HOST_URL"]
+    
+    # Check for either DeepSeek or OpenAI credentials
+    has_deepseek = all([os.environ.get(var) for var in ["DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL"]])
+    has_openai = os.environ.get("OPENAI_API_KEY")
+    
+    if not (has_deepseek or has_openai):
+        required_vars.extend(["DEEPSEEK_API_KEY", "DEEPSEEK_BASE_URL", "OPENAI_API_KEY"])
+    
     missing_vars = [var for var in required_vars if not os.environ.get(var)]
     
     if missing_vars:
@@ -49,9 +63,15 @@ async def main():
         for var in missing_vars:
             print(f"- {var} is not set")
         print("\nPlease set these variables in your .env file or environment:")
-        print("1. OPENAI_API_KEY: Your OpenAI API key")
-        print("2. QDRANT_API_KEY: Your Qdrant Cloud API key")
-        print("3. QDRANT_HOST_URL: Your Qdrant Cloud host URL")
+        print("Required for vector database:")
+        print("- QDRANT_API_KEY: Your Qdrant Cloud API key")
+        print("- QDRANT_HOST_URL: Your Qdrant Cloud host URL")
+        print("\nRequired for LLM (set either DeepSeek OR OpenAI):")
+        print("- DEEPSEEK_API_KEY: Your DeepSeek API key (recommended for development)")
+        print("- DEEPSEEK_BASE_URL: Your DeepSeek API base URL")
+        print("- DEEPSEEK_MODEL: Your DeepSeek model name (optional)")
+        print("OR")
+        print("- OPENAI_API_KEY: Your OpenAI API key")
         print("\nYou can copy the .env.example file to .env and add your credentials.")
         return
     
@@ -72,17 +92,22 @@ async def main():
     try:
         print("Initializing AI Assistant with RAG capabilities...")
         
+        # Determine which LLM provider to use
+        use_deepseek = bool(os.environ.get("DEEPSEEK_API_KEY") and os.environ.get("DEEPSEEK_BASE_URL"))
+        llm_provider = "DeepSeek" if use_deepseek else "OpenAI"
+        logger.info(f"Using {llm_provider} as the LLM provider")
+        
         # Initialize the assistant with Qdrant for RAG
         assistant = PersonalAssistantAgent(
             name=default_assistant_name,
-            api_key=os.environ.get("OPENAI_API_KEY"),
             system_message="""You are a helpful AI assistant. 
             Always introduce yourself with your name when appropriate.
             You can help with coding, answer questions, and remember information from the conversation.
             Be friendly, professional, and concise in your responses.""",
             qdrant_api_key=qdrant_api_key,
             qdrant_host_url=qdrant_host_url,
-            rag_collection="assistant_knowledge"
+            rag_collection="assistant_knowledge",
+            use_deepseek=use_deepseek
         )
         
         # Get the assistant's name from knowledge base if available
